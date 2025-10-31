@@ -47,7 +47,6 @@ window.showAddStudentForm = function() {
 window.closePopup = function() {
   document.getElementById('addTradePopup').style.display = 'none';
   document.getElementById('addStudentPopup').style.display = 'none';
-  // You can also clear fields if you want
 };
 
 window.toggleReports = function() {
@@ -173,6 +172,7 @@ function updateSummary(attendance) {
   document.getElementById("totalLeave").textContent = attendance.filter(x => x === "leave").length;
 }
 
+// Excel-styled attendance tables for View Records
 window.showRecords = async function() {
   const tradeCode = document.getElementById('recordsTradeSelector').value;
   const date = document.getElementById('recordsDateSelector').value;
@@ -183,28 +183,52 @@ window.showRecords = async function() {
   const students = [];
   studentsSnapshot.forEach(docSnap => students.push({ id: docSnap.id, ...docSnap.data() }));
 
-  let presentList = [], absentList = [], leaveList = [];
+  // Split into Present, Absent, Leave with all data
+  let present = [], absent = [], leave = [];
   for (let i = 0; i < students.length; i++) {
-      const status = attendance[i];
-      if (status === 'present') presentList.push(students[i]);
-      else if (status === 'absent') absentList.push(students[i]);
-      else if (status === 'leave') leaveList.push(students[i]);
+    const status = attendance[i];
+    const student = students[i];
+    if (status === "present") present.push({ ...student, status });
+    else if (status === "absent") absent.push({ ...student, status });
+    else if (status === "leave") leave.push({ ...student, status });
   }
 
-  let html = "<h3>Present</h3><ul>";
-  presentList.forEach(stu => { html += `<li>${stu.name} (${stu.year}, ${stu.mobile})</li>` });
-  html += "</ul><h3>Absent</h3><ul>";
-  absentList.forEach(stu => { html += `<li>${stu.name} (${stu.year}, ${stu.mobile})</li>` });
-  html += "</ul><h3>Leave</h3><ul>";
-  leaveList.forEach(stu => { html += `<li>${stu.name} (${stu.year}, ${stu.mobile})</li>` });
-  html += "</ul>";
+  function makeTable(list, statusLabel) {
+    if (list.length === 0) return `<strong>${statusLabel}</strong><br><em>No students</em><br>`;
+    let html = `<strong>${statusLabel}</strong><table border="1" cellspacing="0" cellpadding="4" style="margin-bottom:18px;">
+      <tr style="background:#eee;">
+        <th>Trade</th>
+        <th>Name</th>
+        <th>Mobile</th>
+        <th>Admission Date</th>
+        <th>Shift</th>
+        <th>Unit</th>
+        <th>Status</th>
+      </tr>`;
+    list.forEach(stu => {
+      html += `<tr>
+        <td>${stu.tradeCode}</td>
+        <td>${stu.name}</td>
+        <td>${stu.mobile}</td>
+        <td>${stu.admission}</td>
+        <td>${stu.shift}</td>
+        <td>${stu.unit}</td>
+        <td>${statusLabel}</td>
+      </tr>`;
+    });
+    html += `</table>`;
+    return html;
+  }
 
-  document.getElementById('recordsTable').innerHTML = html;
+  document.getElementById('recordsTable').innerHTML =
+    makeTable(present, "Present") +
+    makeTable(absent, "Absent") +
+    makeTable(leave, "Leave");
 };
 
 // ---------------------- END all window-attached functions ----------------------
 
-// Auth and login
+// Login event
 loginBtn.onclick = async () => {
   const email = document.getElementById('email').value.trim();
   const password = document.getElementById('password').value.trim();
@@ -219,7 +243,6 @@ loginBtn.onclick = async () => {
 
 logoutBtn.onclick = () => { signOut(auth); };
 
-// Monitor login state AFTER all window functions defined
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     loginContainer.style.display = 'none';
