@@ -13,45 +13,15 @@ const loginError = document.getElementById('loginError');
 const appContainer = document.querySelector('.container');
 const logoutBtn = document.getElementById('logoutBtn');
 
-// Auth flow
-onAuthStateChanged(auth, async (user) => {
-  if (user) {
-    loginContainer.style.display = 'none';
-    appContainer.style.display = 'block';
-    logoutBtn.style.display = 'inline-block';
-    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN');
-    await window.loadTrades();
-    await window.showStudentsList();
-  } else {
-    loginContainer.style.display = 'flex';
-    appContainer.style.display = 'none';
-    logoutBtn.style.display = 'none';
-  }
-});
-
-// Login function
-loginBtn.onclick = async () => {
-  const email = document.getElementById('email').value.trim();
-  const password = document.getElementById('password').value.trim();
-  try {
-    await signInWithEmailAndPassword(auth, email, password);
-    loginError.style.display = 'none';
-  } catch (err) {
-    loginError.style.display = 'block';
-    loginError.textContent = err.message;
-  }
-};
-
-logoutBtn.onclick = () => { signOut(auth); };
-
+// ------------------- ALL window functions BEFORE logic -------------------
 window.loadTrades = async function() {
   const tradeSelector = document.getElementById('tradeSelector');
   const studentTrade = document.getElementById('studentTrade');
   const recordsTradeSelector = document.getElementById('recordsTradeSelector');
   [tradeSelector, studentTrade, recordsTradeSelector].forEach(sel => {
+    if (!sel) return;
     while (sel.options && sel.options.length > 1) sel.remove(1);
   });
-
   const tradesSnapshot = await getDocs(collection(db, 'trades'));
   tradesSnapshot.forEach(docSnap => {
     const trade = docSnap.data();
@@ -68,7 +38,6 @@ function addOption(select, value, text) {
   select.appendChild(opt);
 }
 
-// Show popup forms
 window.showAddTradeForm = function() {
   document.getElementById('addTradePopup').style.display = 'block';
 };
@@ -78,10 +47,9 @@ window.showAddStudentForm = function() {
 window.closePopup = function() {
   document.getElementById('addTradePopup').style.display = 'none';
   document.getElementById('addStudentPopup').style.display = 'none';
-  // Reset form fields if needed
+  // You can also clear fields if you want
 };
 
-// Toggle reports and attendance section
 window.toggleReports = function() {
   const recSec = document.getElementById('recordsSection');
   const attSec = document.getElementById('attendanceSection');
@@ -94,7 +62,6 @@ window.toggleReports = function() {
   }
 };
 
-// Add trade
 window.addTrade = async function() {
   const tradeName = document.getElementById("newTradeName").value.trim();
   const tradeCode = document.getElementById("newTradeCode").value.trim().toUpperCase();
@@ -108,7 +75,6 @@ window.addTrade = async function() {
   alert('Trade added');
 };
 
-// Add student
 window.addStudent = async function() {
   const tradeCode = document.getElementById("studentTrade").value;
   const studentName = document.getElementById("newStudentName").value.trim();
@@ -133,7 +99,6 @@ window.addStudent = async function() {
   alert('Student added');
 };
 
-// Show students and attendance
 window.showStudentsList = async function() {
   const tradeCode = document.getElementById("tradeSelector").value;
   const studentsList = document.getElementById("studentsList");
@@ -149,7 +114,6 @@ window.showStudentsList = async function() {
   const attendanceDoc = await getDoc(doc(db, "attendance", `${tradeCode}_${today}`));
   const attendance = attendanceDoc.exists() ? attendanceDoc.data().data : [];
 
-  // Create student list
   for (let idx = 0; idx < students.length; idx++) {
     const student = students[idx];
     const item = document.createElement("li");
@@ -209,7 +173,6 @@ function updateSummary(attendance) {
   document.getElementById("totalLeave").textContent = attendance.filter(x => x === "leave").length;
 }
 
-// Records view (separate present/absent/leave)
 window.showRecords = async function() {
   const tradeCode = document.getElementById('recordsTradeSelector').value;
   const date = document.getElementById('recordsDateSelector').value;
@@ -238,3 +201,36 @@ window.showRecords = async function() {
 
   document.getElementById('recordsTable').innerHTML = html;
 };
+
+// ---------------------- END all window-attached functions ----------------------
+
+// Auth and login
+loginBtn.onclick = async () => {
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value.trim();
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    loginError.style.display = 'none';
+  } catch (err) {
+    loginError.style.display = 'block';
+    loginError.textContent = err.message;
+  }
+};
+
+logoutBtn.onclick = () => { signOut(auth); };
+
+// Monitor login state AFTER all window functions defined
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    loginContainer.style.display = 'none';
+    appContainer.style.display = 'block';
+    logoutBtn.style.display = 'inline-block';
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-IN');
+    await window.loadTrades();
+    await window.showStudentsList();
+  } else {
+    loginContainer.style.display = 'flex';
+    appContainer.style.display = 'none';
+    logoutBtn.style.display = 'none';
+  }
+});
